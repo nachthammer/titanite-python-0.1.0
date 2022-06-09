@@ -20,6 +20,10 @@ fizzbuzz = """
      }
 """
 
+simple_statement = "int a = 4"
+
 lexer = Lexer(fizzbuzz)
-lexer.get_tokens()
+tokens = lexer.get_tokens()
+print(tokens)
+
 
