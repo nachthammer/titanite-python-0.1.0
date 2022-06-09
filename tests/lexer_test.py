@@ -31,33 +31,49 @@ class Allowed_Identifiers_Test(unittest.TestCase):
 
 class Simple_Statements(unittest.TestCase):
     def test_simple_assignment(self):
-        self.lexer = Lexer("int a = 5")
-        tokens = self.lexer.get_tokens()
+        lexer = Lexer("int a = 5")
+        tokens = lexer.get_tokens()
         print(tokens)
         self.assertEqual(len(tokens), 4)
-        self.assertListEqual(tokens, [Token(TokenType.INT), Token(TokenType.IDENTIFIER, "a"), Token(TokenType.ASSIGNMENT), Token(TokenType.INT, 5)])
+        self.assertListEqual(tokens,
+                             [Token(TokenType.INT), Token(TokenType.IDENTIFIER, "a"), Token(TokenType.ASSIGNMENT),
+                              Token(TokenType.INT, 5)])
 
     def test_simple_for_loop(self):
-        self.lexer = Lexer("""
+        lexer = Lexer("""
         for (int i in a) {
             int b = 6
         }
         """)
-        tokens = self.lexer.get_tokens()
+        tokens = lexer.get_tokens()
         print(tokens)
         simple_for_loop_tokens = [
             Token(TokenType.FOR), Token(TokenType.LEFT_BRACKET), Token(TokenType.INT), Token(TokenType.IDENTIFIER, "i"),
-            Token(TokenType.IN), Token(TokenType.IDENTIFIER, "a"), Token(TokenType.RIGHT_BRACKET), 
-            Token(TokenType.LEFT_CURLY_BRACKET),Token(TokenType.INT), Token(TokenType.IDENTIFIER, "b"),
+            Token(TokenType.IN), Token(TokenType.IDENTIFIER, "a"), Token(TokenType.RIGHT_BRACKET),
+            Token(TokenType.LEFT_CURLY_BRACKET), Token(TokenType.INT), Token(TokenType.IDENTIFIER, "b"),
             Token(TokenType.ASSIGNMENT), Token(TokenType.INT, 6),
             Token(TokenType.RIGHT_CURLY_BRACKET)
         ]
         self.assertEqual(len(tokens), 13)
         self.assertListEqual(simple_for_loop_tokens, tokens)
 
-
-
-
+    def test_fizz_buzz(self):
+        lexer = Lexer("""
+for (int i in nums(1,101)) {
+    if (mod(1,15) == 0) {
+        write("FizzBuzz")
+    } elif (mod(1,3) == 0) {
+        write("Fizz")
+    } elif (mod(1,5) == 0) {
+        write("Buzz")
+    } else {
+        write(toStr(i))
+    }
+}
+    """
+                           )
+        tokens = lexer.get_tokens()
+        self.assertListEqual([], )
 
 
 if __name__ == '__main__':
