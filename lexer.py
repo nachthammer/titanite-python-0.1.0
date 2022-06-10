@@ -101,13 +101,6 @@ class TokenObject:
         return self.token
 
 
-KEYWORDS = ["for", "in"]
-SPECIAL_CHARACTERS = ["=", ">", "<", "-", "+", "*", "/", "(", ")", "{", "}", ";"]
-COMPARE_OPERATORS = [">=", "<=", "==", "!="]
-LOGICAL_OPERATORS = ["&&", "||", "!"]
-TYPES = ["int", "double", "str", "List", "bool"]
-SEPARATION_CHARACTERS: List[str] = [" ", "=", ">", "<", "-", "+", "*", "/", "(", ")", "{", "}", ";", "&", "|", "!", ",",
-                                    "\n", "\t"]
 # max variable name length is 51
 ALLOWED_VARIABLE_CHARS_REGEX: Pattern[AnyStr] = re.compile("^([A-Z]|[a-z])([A-Z]|[a-z]|[0-9]){0,50}$")
 LITERAL_REGEX = re.compile("^([0-9][0-9]*)$|^([1-9][0-9]*).([0-9]*)$|^(\"[\w]\")$|false|true")
