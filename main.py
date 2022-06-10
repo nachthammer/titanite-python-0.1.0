@@ -23,6 +23,7 @@ fizzbuzz = """
 simple_statement = "int a = 4"
 
 lexer = Lexer(fizzbuzz)
+lexer.run_lexer()
 tokens = lexer.get_tokens()
 print(tokens)
 

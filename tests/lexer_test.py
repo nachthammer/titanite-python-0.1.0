@@ -1,6 +1,7 @@
 import unittest
 
 from lexer import is_allowed_identifier, Lexer, Token, TokenType
+from tests.lexer_snap_test import fizzbuzz_tokens
 
 
 class EqualsWorksForClasses(unittest.TestCase):
@@ -32,9 +33,8 @@ class Allowed_Identifiers_Test(unittest.TestCase):
 class Simple_Statements(unittest.TestCase):
     def test_simple_assignment(self):
         lexer = Lexer("int a = 5")
+        lexer.run_lexer()
         tokens = lexer.get_tokens()
-        print(tokens)
-        self.assertEqual(len(tokens), 4)
         self.assertListEqual(tokens,
                              [Token(TokenType.INT), Token(TokenType.IDENTIFIER, "a"), Token(TokenType.ASSIGNMENT),
                               Token(TokenType.INT, 5)])
@@ -45,8 +45,8 @@ class Simple_Statements(unittest.TestCase):
             int b = 6
         }
         """)
+        lexer.run_lexer()
         tokens = lexer.get_tokens()
-        print(tokens)
         simple_for_loop_tokens = [
             Token(TokenType.FOR), Token(TokenType.LEFT_BRACKET), Token(TokenType.INT), Token(TokenType.IDENTIFIER, "i"),
             Token(TokenType.IN), Token(TokenType.IDENTIFIER, "a"), Token(TokenType.RIGHT_BRACKET),
@@ -54,12 +54,10 @@ class Simple_Statements(unittest.TestCase):
             Token(TokenType.ASSIGNMENT), Token(TokenType.INT, 6),
             Token(TokenType.RIGHT_CURLY_BRACKET)
         ]
-        self.assertEqual(len(tokens), 13)
         self.assertListEqual(simple_for_loop_tokens, tokens)
 
     def test_fizz_buzz(self):
-        lexer = Lexer("""
-for (int i in nums(1,101)) {
+        lexer = Lexer("""for (int i in nums(1,101)) {
     if (mod(1,15) == 0) {
         write("FizzBuzz")
     } elif (mod(1,3) == 0) {
@@ -72,8 +70,9 @@ for (int i in nums(1,101)) {
 }
     """
                            )
+        lexer.run_lexer()
         tokens = lexer.get_tokens()
-        self.assertListEqual([], )
+        self.assertListEqual(tokens, fizzbuzz_tokens)
 
 
 if __name__ == '__main__':
