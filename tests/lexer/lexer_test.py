@@ -1,7 +1,7 @@
 import unittest
 
-from lexer import is_allowed_identifier, Lexer, Token, TokenType
-from tests.lexer_snap_test import fizzbuzz_tokens
+from lexer import TokenType, TokenObject, Token, is_allowed_identifier, Lexer
+from tests.lexer.lexer_snap_test import fizzbuzz_tokens
 
 
 class EqualsWorksForClasses(unittest.TestCase):
@@ -55,6 +55,14 @@ class Simple_Statements(unittest.TestCase):
             Token(TokenType.RIGHT_CURLY_BRACKET)
         ]
         self.assertListEqual(simple_for_loop_tokens, tokens)
+
+    def test_simple_write_statement(self):
+        lexer = Lexer('write("Hello World!")')
+        lexer.run_lexer()
+        tokens = lexer.get_tokens()
+        asserted_tokens = [Token(TokenType.WRITE), Token(TokenType.LEFT_BRACKET), Token(TokenType.STRING, "Hello World!"), Token(TokenType.RIGHT_BRACKET)]
+        self.assertListEqual(asserted_tokens, tokens)
+
 
     def test_fizz_buzz(self):
         lexer = Lexer("""for (int i in nums(1,101)) {

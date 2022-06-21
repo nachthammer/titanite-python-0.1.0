@@ -255,6 +255,8 @@ class Lexer:
                 token = Token(TokenType.ELIF)
             elif full_word == "else":
                 token = Token(TokenType.ELSE)
+            elif full_word == "write":
+                token = Token(TokenType.WRITE)
             elif re.match(LITERAL_REGEX, full_word):
                 if full_word == "true":
                     token = Token(TokenType.TRUE)
