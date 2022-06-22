@@ -20,7 +20,7 @@ def execute(string: str):
     #print(tokens)
     statement_parser = StatementParser(tokens)
     statement_parser.parse()
-    statement_parser.interpret()
+    return statement_parser.interpret()
 
 
 class SimplePrintStatements(unittest.TestCase):
@@ -31,9 +31,24 @@ class SimplePrintStatements(unittest.TestCase):
 
 class VariableDeclarationStatements(unittest.TestCase):
     def test_simple_variable_declarations(self):
-        execute('int a = 5')
-        execute('str b = "lalelu"\nint a = 6\ndouble a = 7.6')
+        store = execute('int a = 5')
+        self.assertEqual(5, store["a"])
+        store = execute('str b = "lalelu"\nint a = 6\ndouble a = 7.6')
+        self.assertEqual("lalelu", store["b"])
+        #self.assertEqual(6, store["a"])
+        self.assertEqual(7.6, store["a"])
+
+    def test_complicated_boolean_expressions_to_variable(self):
+        store = execute('bool b = true && true')
+        self.assertTrue(store["b"])
+        store = execute('bool b = (true && true) && (false && false) || true')
+        self.assertTrue(store["b"])
+        store = execute('bool b = (false && true) && (false || false) || false')
+        self.assertFalse(store["b"])
 
     def test_variables_data_is_reusable(self):
-        execute('int a = 5\nint b = (a+a)')
+        store = execute('int a = 1\nint b = (a+2)')
+        self.assertEqual(3, store["b"])
+        store = execute('bool a = true\nbool b = (a || false)')
+        self.assertTrue(store["b"])
 

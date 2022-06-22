@@ -3,7 +3,7 @@ import unittest
 from lexer import Lexer, TokenObject, TokenType
 from parser import Parser, LiteralExpr, BinaryExpr, GroupingExpr, UnaryExpr
 from tests.parser.parser_snap import tokens_for_plus_and_minus, parser_tree_for_all_arithmetic_operations, \
-    parser_tree_for_plus_and_minus
+    parser_tree_for_plus_and_minus, double_minus_tree
 
 from typing import List
 
@@ -22,14 +22,14 @@ class SimpleArithmeticsExpressions(unittest.TestCase):
         print(parsed_tree)
         self.assertEqual(parser_tree_for_plus_and_minus, parsed_tree)
 
-    @unittest.skip("double minus is not supported yet.")
+    #@unittest.skip("double minus is not supported yet.")
     def test_double_minus_works(self):
         tokens = get_tokens("2 - -5 * 6")
-        print(tokens)
         parser = Parser(tokens)
         parsed_tree = (parser.parse())
-        print(parsed_tree)
-        self.assertEqual(False, True)
+        print("parsed_Tree", parsed_tree)
+        self.assertEqual(double_minus_tree, parsed_tree)
+        #self.assertEqual(False, True)
 
     def test_all_arithmetic_operators_work(self):
         tokens = get_tokens("1 + 2 * 5 - 6 / 9")

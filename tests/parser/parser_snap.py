@@ -12,13 +12,15 @@ tokens_for_plus_and_minus = [
     TokenObject(Token(TokenType.MINUS), LocationInformation(start_line=1, end_line=1, start_col=15, end_col=16)),
     TokenObject(Token(TokenType.INT, 5), LocationInformation(start_line=1, end_line=1, start_col=17, end_col=18))]
 
-parser_tree_for_plus_and_minus = BinaryExpr(expr=BinaryExpr(expr=LiteralExpr(literal=1), operator=TokenType.PLUS,
-                                                            right=UnaryExpr(operator=TokenType.MINUS,
-                                                                            right=LiteralExpr(literal=5))),
-                                            operator=TokenType.PLUS,
-                                            right=UnaryExpr(operator=TokenType.MINUS, right=LiteralExpr(literal=8575)))
+parser_tree_for_plus_and_minus = BinaryExpr(expr=BinaryExpr(
+    expr=BinaryExpr(expr=BinaryExpr(expr=LiteralExpr(literal=1), operator=TokenType.PLUS, right=LiteralExpr(literal=2)),
+                    operator=TokenType.MINUS, right=LiteralExpr(literal=5)), operator=TokenType.PLUS,
+    right=LiteralExpr(literal=6)), operator=TokenType.MINUS, right=LiteralExpr(literal=8575))
 
-parser_tree_for_all_arithmetic_operations = BinaryExpr(expr=LiteralExpr(literal=1), operator=TokenType.PLUS, right=BinaryExpr(
-    expr=BinaryExpr(expr=LiteralExpr(literal=2), operator=TokenType.MUL,
-                    right=UnaryExpr(operator=TokenType.MINUS, right=LiteralExpr(literal=6))), operator=TokenType.DIV,
-    right=LiteralExpr(literal=9)))
+double_minus_tree = BinaryExpr(expr=LiteralExpr(literal=2), operator=TokenType.MINUS, right=BinaryExpr(expr=UnaryExpr(operator=TokenType.MINUS, right=LiteralExpr(literal=5)), operator=TokenType.MUL, right=LiteralExpr(literal=6)))
+
+parser_tree_for_all_arithmetic_operations = BinaryExpr(
+    expr=BinaryExpr(expr=LiteralExpr(literal=1), operator=TokenType.PLUS,
+                    right=BinaryExpr(expr=LiteralExpr(literal=2), operator=TokenType.MUL,
+                                     right=LiteralExpr(literal=5))), operator=TokenType.MINUS,
+    right=BinaryExpr(expr=LiteralExpr(literal=6), operator=TokenType.DIV, right=LiteralExpr(literal=9)))

@@ -45,10 +45,11 @@ class VariableStatement(Statement):
 
     def execute(self):
         value = self.expr.evaluate(self.env)
-        print(f"Following value was assigned to {self.name}: {value}")
+        self.env.add_variable(self.name, value)
+        #print(f"Following value was assigned to {self.name}: {value}")
 
     def __repr__(self):
-        return f"VariableStatement({self.expr})"
+        return f"VariableStatement(name={self.name}, expr={self.expr})"
 
 
 class StatementParser:
@@ -64,10 +65,15 @@ class StatementParser:
             self.statements.append(statement)
         return self.statements
 
-    def interpret(self):
-        print(f"statements {self.statements}")
+    def interpret(self) -> Dict[str, Any]:
+        """
+        The interpret function returns the variables stored in the environment, this is for testing better
+        :return:
+        """
+        #print(f"statements {self.statements}")
         for statement in self.statements:
             statement.execute()
+        return self.environment.store
 
     def parse_declaration(self):
         if self.current_token_is_type:
@@ -98,7 +104,7 @@ class StatementParser:
         if self.current_token.value is not None:
             return False
         current_type = self.current_token.type
-        return current_type == TokenType.STRING or current_type == TokenType.INT or current_type == TokenType.DOUBLE
+        return current_type == TokenType.STRING or current_type == TokenType.INT or current_type == TokenType.DOUBLE or current_type == TokenType.BOOLEAN
 
     def parse_statement(self):
         if self.current_token.type == TokenType.WRITE:

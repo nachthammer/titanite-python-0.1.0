@@ -16,4 +16,8 @@ class Environment:
     def get_variable_value(self, name):
         if name in self.environment:
             return self.environment[name]
-        raise ParserError("Undefined variable.")
+        raise ParserError(f"Undefined variable {name}.")
+
+    @property
+    def store(self) -> Dict[str, Any]:
+        return self.environment

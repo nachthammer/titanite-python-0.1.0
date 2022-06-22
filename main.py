@@ -4,13 +4,23 @@ from sys import getsizeof
 from evaluator import Evaluator
 from lexer import Lexer
 from parser import Parser
+from statements import StatementParser
 
-expression = "(2/5)/3"
-lexer = Lexer(expression)
-lexer.run_lexer()
-tokens = lexer.get_token_objects()
-parser = Parser(tokens)
-tree = parser.parse()
-evaluator = Evaluator(tree)
-print(evaluator.evaluate())
+
+def get_tokens(code: str):
+    lexer = Lexer(code)
+    lexer.run_lexer()
+    return lexer.get_token_objects()
+
+
+def execute(string: str):
+    tokens = get_tokens(string)
+    #print(tokens)
+    statement_parser = StatementParser(tokens)
+    statement_parser.parse()
+    statement_parser.interpret()
+
+
+store = execute('bool b = (false && true) && (false || false) || false')
+
 

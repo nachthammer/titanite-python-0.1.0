@@ -171,13 +171,29 @@ class Parser:
         return self.tokens[self.index - 1 if self.index-1 > -1 else self.index].token
 
     def expression(self):
-        return self.equality()
+        return self.logic_or()
 
     def match_type(self, token_types: List[TokenType]) -> bool:
         for token_type in token_types:
             if token_type == self.tokens[self.index].token.type:
                 return True
         return False
+
+    def logic_or(self):
+        expr = self.logic_and()
+        while self.current_token_type == TokenType.OR:
+            self.advance()
+            right  = self.logic_and()
+            expr = BinaryExpr(expr, TokenType.OR, right)
+        return expr
+
+    def logic_and(self):
+        expr = self.equality()
+        while self.current_token_type == TokenType.OR:
+            self.advance()
+            right = self.equality()
+            expr = BinaryExpr(expr, TokenType.AND, right)
+        return expr
 
     def equality(self):
         """
@@ -255,7 +271,7 @@ class Parser:
         :return:
         """
         if self.current_token_type == TokenType.IDENTIFIER:
-            literal_expr = LiteralExpr(self.current_token.value)
+            literal_expr = IdentifierExpr(self.current_token.value)
             self.advance()
             return literal_expr
         elif self.current_token_type == TokenType.INT and self.current_token.value is not None:
@@ -267,6 +283,10 @@ class Parser:
             self.advance()
             return literal_string
         elif self.current_token_type == TokenType.STRING and self.current_token.value is not None:
+            literal_string = LiteralExpr(self.current_token.value)
+            self.advance()
+            return literal_string
+        elif self.current_token_type == TokenType.BOOLEAN and self.current_token.value is not None:
             literal_string = LiteralExpr(self.current_token.value)
             self.advance()
             return literal_string

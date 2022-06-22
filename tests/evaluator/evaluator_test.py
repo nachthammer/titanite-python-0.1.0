@@ -4,6 +4,7 @@ from lexer import Lexer, TokenObject, TokenType
 from parser import Parser, LiteralExpr, BinaryExpr, GroupingExpr, UnaryExpr
 from evaluator import Evaluator
 from errors import ParserError, LexerError
+from classes import Environment
 
 from typing import List
 
@@ -19,7 +20,8 @@ def evaluate_string(string: str):
     parser = Parser(tokens)
     parsed_tree = parser.parse()
     evaluator = Evaluator(parsed_tree)
-    return evaluator.evaluate()
+    environment = Environment()
+    return evaluator.evaluate(environment)
 
 
 class SimpleArithmeticsExpressions(unittest.TestCase):
