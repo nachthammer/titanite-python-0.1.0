@@ -52,3 +52,7 @@ class VariableDeclarationStatements(unittest.TestCase):
         store = execute('bool a = true\nbool b = (a || false)')
         self.assertTrue(store["b"])
 
+    def test_data_can_be_assigned(self):
+        store = execute("int a = 1 \n a = 2")
+        self.assertEqual(2, store["a"])
+

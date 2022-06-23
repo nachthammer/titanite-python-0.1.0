@@ -75,7 +75,7 @@ class BooleanExpressions(unittest.TestCase):
         self.assertEqual(False, evaluate_string("1 != 1"))
         self.assertEqual(True, evaluate_string("1 != 2"))
         self.assertEqual(False, evaluate_string("true && false"))
-        self.assertEqual(False, evaluate_string("true || false"))
+        self.assertTrue(evaluate_string("true || false"))
         self.assertEqual(True, evaluate_string("!false"))
 
 

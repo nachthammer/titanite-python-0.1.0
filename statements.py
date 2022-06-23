@@ -1,55 +1,10 @@
 from abc import ABC, abstractmethod
 
 from lexer import TokenType, Token, TokenObject
-from parser import Expr, Parser, ParserError
-from classes import Environment
+from parser import Parser, ParserError
+from classes import Environment, Statement, VariableStatement, PrintStatement, ExpressionStatement, BlockStatement
 
 from typing import List, Optional, Tuple, Dict, Any
-
-
-class Statement(ABC):
-    @abstractmethod
-    def execute(self):
-        pass
-
-
-class PrintStatement(Statement):
-    def __init__(self, expr: Expr, env: Environment):
-        self.expr = expr
-        self.env = env
-
-    def execute(self):
-        print(self.expr.evaluate(self.env))
-
-    def __repr__(self):
-        return f"PrintStatement({self.expr})"
-
-
-class ExpressionStatement(Statement):
-    def __init__(self, expr: Expr, env: Environment):
-        self.expr = expr
-        self.env = env
-
-    def execute(self):
-        self.expr.evaluate(self.env)
-
-    def __repr__(self):
-        return f"ExpressionStatement({self.expr})"
-
-
-class VariableStatement(Statement):
-    def __init__(self, name: str, expr: Expr, env: Environment):
-        self.name = name
-        self.expr = expr
-        self.env = env
-
-    def execute(self):
-        value = self.expr.evaluate(self.env)
-        self.env.add_variable(self.name, value)
-        #print(f"Following value was assigned to {self.name}: {value}")
-
-    def __repr__(self):
-        return f"VariableStatement(name={self.name}, expr={self.expr})"
 
 
 class StatementParser:
@@ -101,6 +56,9 @@ class StatementParser:
 
     @property
     def current_token_is_type(self):
+        """
+        :return: True if token type is one of the following: bool, string, int, double
+        """
         if self.current_token.value is not None:
             return False
         current_type = self.current_token.type
@@ -114,11 +72,22 @@ class StatementParser:
             expr = parser.parse()
             self.index += parser.length_of_expr
             return PrintStatement(expr=expr, env=self.environment)
+        elif self.current_token == TokenType.LEFT_CURLY_BRACKET:
+            self.index += 1
+            return BlockStatement(self.block())
         else:
             parser = Parser(self.tokens[self.index:])
             expr = parser.parse()
             self.index += parser.length_of_expr
             return ExpressionStatement(expr=expr, env=self.environment)
+
+    def block(self):
+        statements = []
+        while self.current_token != TokenType.RIGHT_CURLY_BRACKET and self.index < len(self.tokens):
+            statements.append(self.parse_declaration())
+        if self.current_token != TokenType.RIGHT_CURLY_BRACKET:
+            raise ParserError("Expected '}' after block.")
+        return statements
 
     @property
     def current_token(self):

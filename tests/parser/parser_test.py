@@ -19,7 +19,6 @@ class SimpleArithmeticsExpressions(unittest.TestCase):
         tokens = get_tokens("1 + 2 - 5 + 6 - 8575")
         parser = Parser(tokens)
         parsed_tree = (parser.parse())
-        print(parsed_tree)
         self.assertEqual(parser_tree_for_plus_and_minus, parsed_tree)
 
     #@unittest.skip("double minus is not supported yet.")
@@ -27,7 +26,6 @@ class SimpleArithmeticsExpressions(unittest.TestCase):
         tokens = get_tokens("2 - -5 * 6")
         parser = Parser(tokens)
         parsed_tree = (parser.parse())
-        print("parsed_Tree", parsed_tree)
         self.assertEqual(double_minus_tree, parsed_tree)
         #self.assertEqual(False, True)
 
@@ -35,5 +33,4 @@ class SimpleArithmeticsExpressions(unittest.TestCase):
         tokens = get_tokens("1 + 2 * 5 - 6 / 9")
         parser = Parser(tokens)
         parsed_tree = (parser.parse())
-        print(parsed_tree)
         self.assertEqual(parser_tree_for_all_arithmetic_operations, parsed_tree)

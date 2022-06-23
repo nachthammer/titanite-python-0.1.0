@@ -18,9 +18,10 @@ def execute(string: str):
     #print(tokens)
     statement_parser = StatementParser(tokens)
     statement_parser.parse()
-    statement_parser.interpret()
+    return statement_parser.interpret()
 
 
-store = execute('bool b = (false && true) && (false || false) || false')
+store = execute("int a = 1 \n a = 2")
+print(store)
 
 

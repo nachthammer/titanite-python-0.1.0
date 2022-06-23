@@ -1,139 +1,7 @@
 from lexer import Token, TokenType, TokenObject
-from abc import ABC, abstractmethod
 from errors import ParserError
 from typing import List
-from classes import Environment
-
-
-class Expr(ABC):
-    @abstractmethod
-    def evaluate(self, env: Environment):
-        pass
-
-
-class BinaryExpr(Expr):
-    def __init__(self, expr, operator: TokenType, right: Expr):
-        self.expr = expr
-        self.operator = operator
-        self.right = right
-
-    def __repr__(self):
-        return f"BinaryExpr(expr={self.expr}, operator={self.operator}, right={self.right})"
-
-    def __eq__(self, other):
-        if not isinstance(other, BinaryExpr):
-            return False
-        return self.expr == other.expr and self.operator == other.operator and self.right == other.right
-
-    def evaluate(self, env: Environment):
-        left = self.expr.evaluate(env)
-        right = self.right.evaluate(env)
-        if self.operator == TokenType.PLUS:
-            return left + right
-        elif self.operator == TokenType.MINUS:
-            return left - right
-        elif self.operator == TokenType.MUL:
-            return left * right
-        elif self.operator == TokenType.DIV:
-            return left / right
-        elif self.operator == TokenType.GREATER:
-            return left > right
-        elif self.operator == TokenType.GREATER_EQUALS:
-            return left >= right
-        elif self.operator == TokenType.LESSER:
-            return left < right
-        elif self.operator == TokenType.LESSER_EQUALS:
-            return left <= right
-        elif self.operator == TokenType.EQUALS:
-            return left == right
-        elif self.operator == TokenType.NOT_EQUALS:
-            return left != right
-        elif self.operator == TokenType.AND:
-            return left and right
-        elif self.operator == TokenType.OR:
-            return left or right
-        else:
-            raise ParserError("Following operator is not supported for binary expression", )
-
-
-class UnaryExpr(Expr):
-    def __init__(self, operator: TokenType, right: Expr):
-        self.operator = operator
-        self.right = right
-
-    def __repr__(self):
-        return f"UnaryExpr(operator={self.operator}, right={self.right})"
-
-    def __eq__(self, other):
-        if not isinstance(other, UnaryExpr):
-            return False
-        return self.operator == other.operator and self.right == other.right
-
-    def evaluate(self, env: Environment):
-        evaluated_right = self.right.evaluate(env)
-        if self.operator == TokenType.NOT:
-            return not evaluated_right
-        elif self.operator == TokenType.MINUS:
-            if isinstance(evaluated_right, float) or isinstance(evaluated_right, int):
-                return -evaluated_right
-            else:
-                raise ParserError(f"Cannot negate a non number: {evaluated_right}")
-        else:
-            raise ParserError(f"Could not evaluate this unary expression. {self}")
-
-
-class LiteralExpr(Expr):
-    def __init__(self, literal):
-        self.literal = literal
-
-    def __repr__(self):
-        return f"LiteralExpr(literal={self.literal})"
-
-    def __eq__(self, other):
-        if not isinstance(other, LiteralExpr):
-            return False
-        return self.literal == other.literal
-
-    def evaluate(self, env: Environment):
-        if self.literal is None:
-            raise ParserError("Could not evaluate None")
-        return self.literal
-
-
-class IdentifierExpr(Expr):
-    def __init__(self, identifier):
-        self.identifier = identifier
-
-    def __repr__(self):
-        return f"LiteralExpr(literal={self.identifier})"
-
-    def __eq__(self, other):
-        if not isinstance(other, IdentifierExpr):
-            return False
-        return self.identifier == other.identifier
-
-    def evaluate(self, env: Environment):
-        if self.identifier is None:
-            raise ParserError("Could not evaluate None")
-        return env.get_variable_value(self.identifier)
-
-
-class GroupingExpr(Expr):
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __repr__(self):
-        return f"GroupingExpr(expr={self.expr})"
-
-    def __eq__(self, other):
-        if not isinstance(other, GroupingExpr):
-            return False
-        return self.expr == other.expr
-
-    def evaluate(self, env: Environment):
-        if self.expr is None:
-            raise ParserError("Could not evaluate None.")
-        return self.expr.evaluate(env)
+from classes import VariableStatement, AssignExpr, BinaryExpr, UnaryExpr, IdentifierExpr, LiteralExpr, GroupingExpr
 
 
 class Parser:
@@ -168,10 +36,25 @@ class Parser:
 
     @property
     def previous_token(self):
-        return self.tokens[self.index - 1 if self.index-1 > -1 else self.index].token
+        return self.tokens[self.index - 1 if self.index - 1 > -1 else self.index].token
 
     def expression(self):
-        return self.logic_or()
+        return self.assignment()
+
+    def assignment(self):
+        expr = self.equality()
+
+        if self.current_token_type == TokenType.ASSIGNMENT:
+            self.advance()
+            value = self.assignment()
+            if isinstance(expr, VariableStatement):
+                name = expr.name
+                return AssignExpr(name, value)
+            elif isinstance(expr, IdentifierExpr):
+                name = expr.identifier
+                return AssignExpr(name, value)
+            raise ParserError(f"Invalid assignment target. Was an {type(expr)}")
+        return expr
 
     def match_type(self, token_types: List[TokenType]) -> bool:
         for token_type in token_types:
@@ -183,7 +66,7 @@ class Parser:
         expr = self.logic_and()
         while self.current_token_type == TokenType.OR:
             self.advance()
-            right  = self.logic_and()
+            right = self.logic_and()
             expr = BinaryExpr(expr, TokenType.OR, right)
         return expr
 

@@ -1,6 +1,5 @@
-from parser import Expr
 from errors import ParserError
-from classes import Environment
+from classes import Environment, Expr
 
 
 class Evaluator:
