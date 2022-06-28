@@ -53,6 +53,7 @@ class TokenType(Enum):
     NOT = "NOT"
     # error token
     ERROR = "ERROR"
+    EOF = "EOF"
 
 
 class Token:
@@ -129,6 +130,7 @@ class Lexer:
     def run_lexer(self):
         while self.index < len(self.code):
             self.go_forward()
+        self.tokens.append(TokenObject(Token(TokenType.EOF), LocationInformation(0, 0, 0, 0)))
 
     def get_token_objects(self) -> List[TokenObject]:
         return self.tokens
@@ -182,13 +184,13 @@ class Lexer:
                 token = Token(TokenType.ASSIGNMENT)
         elif current_char == "&":
             if next_char == "&":
-                token = Token(TokenType.EQUALS)
+                token = Token(TokenType.AND)
                 skip_length = 2
             else:
                 token = Token(TokenType.ERROR, "Expected a '&' after a '&'")
         elif current_char == "|":
             if next_char == "|":
-                token = Token(TokenType.EQUALS)
+                token = Token(TokenType.OR)
                 skip_length = 2
             else:
                 token = Token(TokenType.ERROR, "Expected a '|' after a '|'")
@@ -198,6 +200,8 @@ class Lexer:
                 skip_length = 2
             else:
                 token = Token(TokenType.NOT)
+        elif current_char == ";":
+            token=Token(TokenType.SEMICOLON)
         elif current_char == "-":
             token = Token(TokenType.MINUS)
         elif current_char == "+":
@@ -317,13 +321,14 @@ class Lexer:
                 if re.match(digit_regex, text[i]):
                     identifier += text[i]
                 elif text[i] == "." and after_point:
-                    return identifier, len(identifier)+1, "Expected only one . for a number."
+                    return identifier, len(identifier) + 1, "Expected only one . for a number."
                 elif text[i] == ".":
                     after_point = True
                     identifier += "."
                 else:
-                    if text[i-1] == ".":
-                        return identifier, len(identifier)+1, f"No lonely point allowed for double. Write {identifier}0 instead"
+                    if text[i - 1] == ".":
+                        return identifier, len(
+                            identifier) + 1, f"No lonely point allowed for double. Write {identifier}0 instead"
                     return identifier, len(identifier), None
             return identifier, len(identifier), None
         else:

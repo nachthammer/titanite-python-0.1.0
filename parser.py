@@ -1,7 +1,8 @@
 from lexer import Token, TokenType, TokenObject
 from errors import ParserError
 from typing import List
-from classes import VariableStatement, AssignExpr, BinaryExpr, UnaryExpr, IdentifierExpr, LiteralExpr, GroupingExpr
+from classes import VariableStatement, AssignExpr, BinaryExpr, UnaryExpr, IdentifierExpr, LiteralExpr, GroupingExpr, \
+    LogicExpr
 
 
 class Parser:
@@ -42,7 +43,7 @@ class Parser:
         return self.assignment()
 
     def assignment(self):
-        expr = self.equality()
+        expr = self.logic_or()
 
         if self.current_token_type == TokenType.ASSIGNMENT:
             self.advance()
@@ -56,26 +57,20 @@ class Parser:
             raise ParserError(f"Invalid assignment target. Was an {type(expr)}")
         return expr
 
-    def match_type(self, token_types: List[TokenType]) -> bool:
-        for token_type in token_types:
-            if token_type == self.tokens[self.index].token.type:
-                return True
-        return False
-
     def logic_or(self):
         expr = self.logic_and()
         while self.current_token_type == TokenType.OR:
             self.advance()
             right = self.logic_and()
-            expr = BinaryExpr(expr, TokenType.OR, right)
+            expr = LogicExpr(expr, TokenType.OR, right)
         return expr
 
     def logic_and(self):
         expr = self.equality()
-        while self.current_token_type == TokenType.OR:
+        while self.current_token_type == TokenType.AND:
             self.advance()
             right = self.equality()
-            expr = BinaryExpr(expr, TokenType.AND, right)
+            expr = LogicExpr(expr, TokenType.AND, right)
         return expr
 
     def equality(self):
@@ -107,7 +102,7 @@ class Parser:
 
     def term(self):
         """
-        term           → factor ( ( "-" | "+" ) factor )* ;
+        term           → factor ( ( "-" | "+" ) factor )*
         :return:
         """
         term = self.factor()
@@ -122,7 +117,7 @@ class Parser:
 
     def factor(self):
         """
-        factor         → unary ( ( "/" | "*" ) unary )* ;
+        factor         → unary ( ( "/" | "*" ) unary )*
         :return:
         """
         factor = self.unary()
@@ -137,7 +132,7 @@ class Parser:
 
     def unary(self):
         """
-        unary          → ( "!" | "-" ) unary | primary ;
+        unary          → ( "!" | "-" ) unary | primary
         :return:
         """
         while self.match_type([TokenType.NOT, TokenType.MINUS]):
@@ -193,3 +188,14 @@ class Parser:
     @property
     def current_token(self):
         return self.tokens[self.index].token
+
+    def match_type(self, token_types: List[TokenType]) -> bool:
+        """
+        Returns true if the current token is one of token in the params
+        :param token_types: the to be compared token types
+        :return: True if the current token type is in the list, False otherwise
+        """
+        for token_type in token_types:
+            if token_type == self.tokens[self.index].token.type:
+                return True
+        return False

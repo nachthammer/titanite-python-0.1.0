@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional, List
 
 class Environment:
     def __init__(self, enclosing: Optional[Any] = None):
+        self.environment: Dict[str, Any] = {}
         if enclosing is None:
-            self.environment: Dict[str, Any] = {}
             self.enclosing = None
         else:
             self.enclosing = enclosing
@@ -45,17 +45,28 @@ class Environment:
         if name in self.environment:
             return self.environment[name]
         if self.enclosing is not None:
-            return self.enclosing.get_variable_value()
+            return self.enclosing.get_variable_value(name)
         raise RuntimeError(f"Undefined variable {name}.")
 
     @property
     def store(self) -> Dict[str, Any]:
         return self.environment
 
+    @property
+    def evaluated_store(self) -> Dict[str, Any]:
+        evaluated_environment = self.environment
+        for key, value in evaluated_environment.items():
+            if issubclass(type(value), Expr):
+                evaluated_environment[key] = value.evaluate(self.environment)
+        return evaluated_environment
+
+    def __repr__(self):
+        return f"Environment(environment={self.environment}, enclosing={self.enclosing})"
+
 
 class Statement(ABC):
     @abstractmethod
-    def execute(self):
+    def execute(self, env: Environment):
         pass
 
 
@@ -64,73 +75,151 @@ class Expr(ABC):
     def evaluate(self, env: Environment):
         pass
 
+##########################################################################
+# Statements
+##########################################################################
 
 class BlockStatement(Statement):
-    def __init__(self, block, env):
+    def __init__(self, block):
         self.block: List[Statement] = block
-        self.env = env
 
-    def execute(self):
-        environment = Environment(self.env)
-        previous_env = self.env
-        self.env = environment
+    def execute(self, env):
+        environment = Environment(env)
+        previous_env = env
+        env = environment
         try:
             for statement in self.block:
-                statement.execute()
+                statement.execute(env)
         finally:
-            self.env = previous_env
+            env = previous_env
 
     def __repr__(self):
         return f"BlockStatement({self.block})"
 
 
-class PrintStatement(Statement):
-    def __init__(self, expr: Expr, env: Environment):
-        self.expr = expr
-        self.env = env
+class IfStatement(Statement):
+    def __init__(self, cond: Expr, if_branch: BlockStatement, else_branch: Optional[BlockStatement]):
+        self.cond = cond
+        self.if_branch = if_branch
+        self.else_branch = else_branch
 
-    def execute(self):
-        print(self.expr.evaluate(self.env))
+    def execute(self, env: Environment):
+        condition = self.cond.evaluate(env)
+        if condition:
+            self.if_branch.execute(env)
+            return
+        if not condition and self.else_branch is not None:
+            self.else_branch.execute(env)
+            return
+        return
+
+    def __repr__(self):
+        return f"IfStatement({self.cond}, {self.if_branch}, {self.else_branch})"
+
+
+class WhileStatement(Statement):
+    def __init__(self, cond: Expr, while_body: BlockStatement):
+        self.cond = cond
+        self.while_body = while_body
+
+    def execute(self, env):
+        condition = get_bool(self.cond, env)
+        while condition:
+            self.while_body.execute(env)
+            condition = get_bool(self.cond, env)
+
+    def __repr__(self):
+        return f"IfStatement({self.cond}, {self.while_body})"
+
+
+def get_bool(expr: Expr, env):
+    value = expr.evaluate(env)
+    if isinstance(value, bool):
+        return value
+    raise RuntimeError("Expected a boolean.")
+
+
+class PrintStatement(Statement):
+    def __init__(self, expr: Expr):
+        self.expr = expr
+
+    def execute(self, env: Environment):
+        print(self.expr.evaluate(env))
 
     def __repr__(self):
         return f"PrintStatement({self.expr})"
 
 
 class ExpressionStatement(Statement):
-    def __init__(self, expr: Expr, env: Environment):
+    def __init__(self, expr: Expr):
         self.expr = expr
-        self.env = env
 
-    def execute(self):
-        self.expr.evaluate(self.env)
+    def execute(self, env):
+        self.expr.evaluate(env)
 
     def __repr__(self):
         return f"ExpressionStatement({self.expr})"
 
 
 class VariableStatement(Statement):
-    def __init__(self, name: str, expr: Expr, env: Environment):
+    def __init__(self, name: str, expr: Expr):
         self.name = name
         self.expr = expr
-        self.env = env
 
-    def execute(self):
-        value = self.expr.evaluate(self.env)
-        self.env.declare_variable(self.name, value)
+    def execute(self, env):
+        value = self.expr.evaluate(env)
+        env.declare_variable(self.name, value)
         #print(f"Following value was assigned to {self.name}: {value}")
 
     def __repr__(self):
         return f"VariableStatement(name={self.name}, expr={self.expr})"
 
+##########################################################################
+# Expressions
+##########################################################################
+
 
 class AssignExpr(Expr):
-    def __init__(self, name, value):
+    def __init__(self, name, value: Expr):
         self.name = name
         self.value = value
 
     def evaluate(self, env: Environment):
-        env.assign_variable(self.name, self.value)
+        env.assign_variable(self.name, self.value.evaluate(env))
         return self.value
+
+    def __repr__(self):
+        return f"AssignExpr(name={self.name}, value={self.value})"
+
+
+class LogicExpr(Expr):
+    def __init__(self, expr: Expr, logic_operator: TokenType, right: Expr):
+        self.expr = expr
+        self.logic_operator = logic_operator
+        self.right = right
+
+    def __repr__(self):
+        return f"BinaryExpr(expr={self.expr}, operator={self.logic_operator}, right={self.right})"
+
+    def __eq__(self, other):
+        if not isinstance(other, LogicExpr):
+            return False
+        return self.expr == other.expr and self.logic_operator == other.logic_operator and self.right == other.right
+
+    def evaluate(self, env: Environment):
+        left = self.expr.evaluate(env)
+        if not isinstance(left, bool):
+            raise RuntimeError("Expected a boolean type for logic operators.")
+        if self.logic_operator == TokenType.AND:
+            if not left:
+                return False
+            return self.right.evaluate(env)
+        elif self.logic_operator == TokenType.OR:
+            if left:
+                return True
+            return self.right.evaluate(env)
+        else:
+            raise ParserError("Expected an logic operator in a logic operation.")
 
 
 class BinaryExpr(Expr):

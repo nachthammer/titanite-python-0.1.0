@@ -70,13 +70,15 @@ class StackedArithmeticExpressions(unittest.TestCase):
 
 class BooleanExpressions(unittest.TestCase):
     def test_simple_boolean_expressions(self):
-        self.assertEqual(False, evaluate_string("1 == 2"))
-        self.assertEqual(True, evaluate_string("1 == 1"))
-        self.assertEqual(False, evaluate_string("1 != 1"))
-        self.assertEqual(True, evaluate_string("1 != 2"))
-        self.assertEqual(False, evaluate_string("true && false"))
+        self.assertFalse(evaluate_string("1 == 2"))
+        self.assertTrue(evaluate_string("1 == 1"))
+        self.assertFalse(evaluate_string("1 != 1"))
+        self.assertTrue(evaluate_string("1 != 2"))
+        self.assertTrue(evaluate_string("!false"))
+        self.assertFalse(evaluate_string("!true"))
+        self.assertFalse(evaluate_string("true && false"))
+        self.assertTrue(evaluate_string("true && true && true"))
         self.assertTrue(evaluate_string("true || false"))
-        self.assertEqual(True, evaluate_string("!false"))
 
 
 class StringExpressions(unittest.TestCase):
