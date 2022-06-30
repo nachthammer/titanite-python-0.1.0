@@ -168,13 +168,12 @@ class ExpressionStatement(Statement):
 
 
 class FunctionStatement(Statement):
-    def __init__(self, name, parameters: List[Token], body: BlockStatement, global_env: Environment, call_function: Optional[Any] = None):
+    def __init__(self, name, parameters: List[Token], body: BlockStatement, global_env: Environment):
         self.name = name
         self.parameters = parameters
         self.arity = len(parameters)
         self.body = body
         self.global_environment = global_env
-        self.call_function = call_function
 
     def execute(self, env: Environment):
         pass
@@ -186,8 +185,6 @@ class FunctionStatement(Statement):
         environment = Environment(env)
         for arg_name, arg_value in zip(self.parameters, arguments):
             environment.declare_variable(arg_name, arg_value)
-        if self.call_function is not None:
-            self.call_function(env)
         self.body.execute(environment)
 
     def __repr__(self):

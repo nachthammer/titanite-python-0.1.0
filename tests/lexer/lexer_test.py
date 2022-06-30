@@ -63,7 +63,6 @@ class Simple_Statements(unittest.TestCase):
         asserted_tokens = [Token(TokenType.WRITE), Token(TokenType.LEFT_BRACKET), Token(TokenType.STRING, "Hello World!"), Token(TokenType.RIGHT_BRACKET)]
         self.assertListEqual(asserted_tokens, tokens)
 
-
     def test_fizz_buzz(self):
         lexer = Lexer("""for (int i in nums(1,101)) {
     if (mod(1,15) == 0) {

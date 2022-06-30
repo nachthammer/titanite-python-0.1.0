@@ -18,7 +18,6 @@ class StatementParser:
     def parse(self) -> List[Statement]:
         while not self.file_finished:
             statement = self.parse_declaration()
-            print(statement)
             self.statements.append(statement)
 
         return self.statements
@@ -77,61 +76,20 @@ class StatementParser:
         return current_type == TokenType.STRING or current_type == TokenType.INT or current_type == TokenType.DOUBLE or current_type == TokenType.BOOLEAN
 
     def parse_statement(self):
-        if self.current_token.type == TokenType.WRITE:
-            self.index += 1
-            next_tokens = self.tokens[self.index:]
-            parser = Parser(next_tokens)
-            expr = parser.parse()
-            self.index += parser.length_of_expr
-            if self.current_token_type != TokenType.SEMICOLON:
-                raise ParserError("Expected an ';' after a write statement")
-            self.index += 1
-            return PrintStatement(expr=expr)
-        elif self.current_token_type == TokenType.FUN:
-            """
-            "fun" function
-            """
-            self.index += 1
+        if self.match(TokenType.WRITE):
+            return self.write_statement()
+        elif self.match(TokenType.FUN):
             return self.function("function")
-        elif self.current_token.type == TokenType.LEFT_CURLY_BRACKET:
-            self.index += 1
+        elif self.match(TokenType.LEFT_CURLY_BRACKET):
             return self.block()
-        elif self.current_token_type == TokenType.IF:
-            """
-            ifStmt → "if" "(" expression ")" "{" block_statement "}" ( "else" { block_statement } )? ;
-            """
-            self.index += 1
-            self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
-            if_condition = self.expression()
-            self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after an expression")
-            self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if body. ")
-            if_branch = self.block()
-            elif_branches: List[Tuple[Expr, BlockStatement]] = []
-            while self.current_token_type == TokenType.ELIF:
-                self.index += 1
-                self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
-                elif_condition: Expr = self.expression()
-                self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after an expression")
-                self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if body. ")
-                elif_branch: BlockStatement = self.block()
-                elif_branches.append((elif_condition, elif_branch))
-            else_branch = None
-            if self.current_token_type == TokenType.ELSE:
-                self.index += 1
-                self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the else body.")
-                else_branch = self.block()
-            return IfStatement(if_condition, if_branch, else_branch, elif_branches)
-        elif self.current_token_type == TokenType.WHILE:
-            self.index += 1
-            self.consume(TokenType.LEFT_BRACKET, "Expected '(' after while keyword.")
-            condition = self.expression()
-            self.consume(TokenType.RIGHT_BRACKET, "Expected ')' at the end of the while condition.")
-            self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the while body")
-            while_body = self.block()
-            return WhileStatement(condition, while_body)
+        elif self.match(TokenType.IF):
+            # ifStmt → "if" "(" expression ")" "{" block_statement "}" ( "else" { block_statement } )? ;
+            return self.if_statement()
+        elif self.match(TokenType.WHILE):
+            # while stmt -> "while" "(" expression ")" "{" block_statement "}"
+            return self.while_statement()
         else:
             expr = self.expression()
-            print(expr)
             self.consume(TokenType.SEMICOLON, "Expected ';' after expression")
             return ExpressionStatement(expr=expr)
 
@@ -170,6 +128,36 @@ class StatementParser:
         function_body = self.block()
         return FunctionStatement(name=name_token.value, parameters=parameters, body=function_body, global_env=self.environment)
 
+    def if_statement(self):
+        self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
+        if_condition = self.expression()
+        self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after an expression")
+        self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if body. ")
+        if_branch = self.block()
+        elif_branches: List[Tuple[Expr, BlockStatement]] = []
+        while self.current_token_type == TokenType.ELIF:
+            self.index += 1
+            self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
+            elif_condition: Expr = self.expression()
+            self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after an expression")
+            self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if body. ")
+            elif_branch: BlockStatement = self.block()
+            elif_branches.append((elif_condition, elif_branch))
+        else_branch = None
+        if self.current_token_type == TokenType.ELSE:
+            self.index += 1
+            self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the else body.")
+            else_branch = self.block()
+        return IfStatement(if_condition, if_branch, else_branch, elif_branches)
+
+    def while_statement(self):
+        self.consume(TokenType.LEFT_BRACKET, "Expected '(' after while keyword.")
+        condition = self.expression()
+        self.consume(TokenType.RIGHT_BRACKET, "Expected ')' at the end of the while condition.")
+        self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the while body")
+        while_body = self.block()
+        return WhileStatement(condition, while_body)
+
     @property
     def current_token(self):
         return self.tokens[self.index].token
@@ -189,5 +177,20 @@ class StatementParser:
             return current_token
         raise ParserError(error)
 
+    def match(self, token_type: TokenType):
+        if self.current_token_type == token_type:
+            self.index += 1
+            return True
+        return False
+
     def add_native_functions(self):
         self.environment.declare_variable("mod", ModStatementFunction())
+
+    def write_statement(self):
+        self.consume(TokenType.LEFT_BRACKET, "Expect '(' after write statement.")
+        expr = self.expression()
+        self.consume(TokenType.RIGHT_BRACKET, "Expect ')' at the end of the write expression.")
+        if self.current_token_type != TokenType.SEMICOLON:
+            raise ParserError("Expected an ';' after a write statement")
+        self.index += 1
+        return PrintStatement(expr=expr)

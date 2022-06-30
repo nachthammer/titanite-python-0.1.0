@@ -1,6 +1,6 @@
 import unittest
 
-from classes import FunctionStatement, BlockStatement
+from classes import FunctionStatement, BlockStatement, Environment
 from lexer import Lexer, TokenObject, TokenType
 from parser import Parser, LiteralExpr, BinaryExpr, GroupingExpr, UnaryExpr
 from evaluator import Evaluator
@@ -82,7 +82,8 @@ class FunctionStatements(unittest.TestCase):
         store = execute("""
                 fun foo() {}
                 """)
-        self.assertEqual(FunctionStatement(name="foo", parameters=[], body=BlockStatement([])), store["foo"])
+        self.assertEqual(FunctionStatement(name="foo", parameters=[], body=BlockStatement([]), global_env=Environment()), store["foo"])
+
     def test_simple_function(self):
         store = execute("""
         fun foo() {}
