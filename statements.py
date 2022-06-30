@@ -1,11 +1,10 @@
-from abc import ABC, abstractmethod
+from typing import List, Tuple, Dict, Any
 
-from lexer import TokenType, Token, TokenObject
-from parser import Parser, ParserError
 from classes import Environment, Statement, VariableStatement, PrintStatement, ExpressionStatement, BlockStatement, \
-    IfStatement, WhileStatement
-
-from typing import List, Optional, Tuple, Dict, Any
+    IfStatement, WhileStatement, FunctionStatement, NativeFunctionStatement, Expr
+from lexer import TokenType, Token, TokenObject
+from native_functions import ModStatementFunction
+from parser import Parser, ParserError
 
 
 class StatementParser:
@@ -14,10 +13,12 @@ class StatementParser:
         self.index = 0
         self.statements: List[Statement] = []
         self.environment = Environment()
+        self.add_native_functions()
 
     def parse(self) -> List[Statement]:
         while not self.file_finished:
             statement = self.parse_declaration()
+            print(statement)
             self.statements.append(statement)
 
         return self.statements
@@ -26,7 +27,7 @@ class StatementParser:
     def file_finished(self):
         return self.current_token_type == TokenType.EOF or self.index - 1 > len(self.tokens)
 
-    def interpret(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def interpret(self) -> Dict[str, Any]:
         """
         The interpret function returns the variables stored in the environment, this is for testing better
         :return:
@@ -34,7 +35,13 @@ class StatementParser:
         for statement in self.statements:
             statement.execute(self.environment)
 
-        return self.environment.store, self.environment.evaluated_store
+        return self.environment.evaluated_store
+
+    def get_store(self):
+        return self.environment.store
+
+    def get_evaluated_store(self):
+        return self.environment.evaluated_store
 
     def parse_declaration(self):
         if self.current_token_is_type:
@@ -80,6 +87,12 @@ class StatementParser:
                 raise ParserError("Expected an ';' after a write statement")
             self.index += 1
             return PrintStatement(expr=expr)
+        elif self.current_token_type == TokenType.FUN:
+            """
+            "fun" function
+            """
+            self.index += 1
+            return self.function("function")
         elif self.current_token.type == TokenType.LEFT_CURLY_BRACKET:
             self.index += 1
             return self.block()
@@ -91,14 +104,23 @@ class StatementParser:
             self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
             if_condition = self.expression()
             self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after an expression")
-            self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if branch. ")
+            self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if body. ")
             if_branch = self.block()
+            elif_branches: List[Tuple[Expr, BlockStatement]] = []
+            while self.current_token_type == TokenType.ELIF:
+                self.index += 1
+                self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
+                elif_condition: Expr = self.expression()
+                self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after an expression")
+                self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the if body. ")
+                elif_branch: BlockStatement = self.block()
+                elif_branches.append((elif_condition, elif_branch))
             else_branch = None
             if self.current_token_type == TokenType.ELSE:
                 self.index += 1
-                self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the else branch.")
+                self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected a '{' leading the else body.")
                 else_branch = self.block()
-            return IfStatement(if_condition, if_branch, else_branch)
+            return IfStatement(if_condition, if_branch, else_branch, elif_branches)
         elif self.current_token_type == TokenType.WHILE:
             self.index += 1
             self.consume(TokenType.LEFT_BRACKET, "Expected '(' after while keyword.")
@@ -108,12 +130,9 @@ class StatementParser:
             while_body = self.block()
             return WhileStatement(condition, while_body)
         else:
-            parser = Parser(self.tokens[self.index:])
-            expr = parser.parse()
-            self.index += parser.length_of_expr
-            if self.current_token_type != TokenType.SEMICOLON:
-                raise ParserError("Expected ';' after expression")
-            self.index += 1
+            expr = self.expression()
+            print(expr)
+            self.consume(TokenType.SEMICOLON, "Expected ';' after expression")
             return ExpressionStatement(expr=expr)
 
     def expression(self):
@@ -130,6 +149,27 @@ class StatementParser:
         self.consume(TokenType.RIGHT_CURLY_BRACKET, "Expect '}' at the end of a block.")
         return BlockStatement(statements)
 
+    def function(self, kind: str):
+        """
+        function       → IDENTIFIER "(" parameters? ")" block ;
+        parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
+        :return:
+        """
+        name_token: Token = self.consume(TokenType.IDENTIFIER, f"Expected {kind} name.")
+        self.consume(TokenType.LEFT_BRACKET, f"Expected '(' after {kind} name.")
+        parameters: List[Token] = []
+        if self.current_token_type != TokenType.RIGHT_BRACKET:
+            parameters.append(self.consume(TokenType.IDENTIFIER, "Expected an identifier as function argument."))
+            while self.current_token_type == TokenType.COMMA:
+                self.index += 1
+                if len(parameters) > 255:
+                    raise ParserError("Cannot have more than 255 function arguments.")
+                parameters.append(self.consume(TokenType.IDENTIFIER, "Expected an identifier as function argument."))
+        self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after function arguments.")
+        self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected '{' before " + kind + " body.")
+        function_body = self.block()
+        return FunctionStatement(name=name_token.value, parameters=parameters, body=function_body, global_env=self.environment)
+
     @property
     def current_token(self):
         return self.tokens[self.index].token
@@ -144,6 +184,10 @@ class StatementParser:
 
     def consume(self, token_type: TokenType, error: str):
         if self.current_token_type == token_type:
+            current_token = self.current_token
             self.index += 1
-            return True
+            return current_token
         raise ParserError(error)
+
+    def add_native_functions(self):
+        self.environment.declare_variable("mod", ModStatementFunction())

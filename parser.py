@@ -2,7 +2,7 @@ from lexer import Token, TokenType, TokenObject
 from errors import ParserError
 from typing import List
 from classes import VariableStatement, AssignExpr, BinaryExpr, UnaryExpr, IdentifierExpr, LiteralExpr, GroupingExpr, \
-    LogicExpr
+    LogicExpr, CallExpr
 
 
 class Parser:
@@ -141,7 +141,35 @@ class Parser:
             right = self.primary()
             return UnaryExpr(operator, right)
 
-        return self.primary()
+        return self.call()
+
+    def call(self):
+        """
+        call           → primary ( "(" arguments? ")" )* ;
+        :return:
+        """
+        expr = self.primary()
+        while True:
+            if self.current_token_type == TokenType.LEFT_BRACKET:
+                self.advance()
+                expr = self.finish_call(expr)
+            else:
+                break
+
+        return expr
+
+    def finish_call(self, call_name):
+        arguments = []
+        if self.current_token_type != TokenType.RIGHT_BRACKET:
+            arguments.append(self.expression())
+            while self.current_token_type == TokenType.COMMA:
+                self.advance()
+                if len(arguments) > 255:
+                    raise ParserError("Cannot have more than 255 arguments.")
+                arguments.append(self.expression())
+        # now we have all arguments
+        self.consume(TokenType.RIGHT_BRACKET, "Expected ')' for closing the arguments section.")
+        return CallExpr(call_name, TokenType.RIGHT_BRACKET, arguments)
 
     def primary(self):
         """
@@ -184,6 +212,24 @@ class Parser:
                 return GroupingExpr(expr)
         else:
             raise ParserError(f"Expected an expression. Got {self.current_token}")
+
+    def arguments(self):
+        """
+        arguments      → expression ( "," expression )* ;
+        :return:
+        """
+        expr = [self.expression()]
+        while self.current_token_type == TokenType.COMMA:
+            self.advance()
+            expr.append(self.expression())
+
+        return expr
+
+    def consume(self, token_type: TokenType, error: str):
+        if self.current_token_type == token_type:
+            self.advance()
+            return True
+        raise ParserError(error)
 
     @property
     def current_token(self):

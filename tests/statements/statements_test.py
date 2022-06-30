@@ -1,5 +1,6 @@
 import unittest
 
+from classes import FunctionStatement, BlockStatement
 from lexer import Lexer, TokenObject, TokenType
 from parser import Parser, LiteralExpr, BinaryExpr, GroupingExpr, UnaryExpr
 from evaluator import Evaluator
@@ -75,3 +76,16 @@ class IfStatements(unittest.TestCase):
         """)
         self.assertEqual(2, store["a"])
 
+
+class FunctionStatements(unittest.TestCase):
+    def test_function_declaration(self):
+        store = execute("""
+                fun foo() {}
+                """)
+        self.assertEqual(FunctionStatement(name="foo", parameters=[], body=BlockStatement([])), store["foo"])
+    def test_simple_function(self):
+        store = execute("""
+        fun foo() {}
+        
+        foo();
+        """)

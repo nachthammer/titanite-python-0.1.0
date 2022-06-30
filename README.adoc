@@ -1,1 +1,9 @@
 = Titanite 0.1.0
+
+== What is missing
+
+- Static typing 5/10
+- No shadowing 1/10
+- Functions 5/10
+- Structs 7/10
+

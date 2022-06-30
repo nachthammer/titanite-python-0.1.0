@@ -29,21 +29,28 @@ def execute(string: str):
     #print(tokens)
     statement_parser = StatementParser(tokens)
     statement_parser.parse()
-    return statement_parser.interpret()
+    statement_parser.interpret()
+    return statement_parser.get_store(), statement_parser.get_evaluated_store()
 
 
 #print(evaluate_string("true && false"))
 store, evaluated_store = execute("""
-        int i = 1;
-        while(i < 9) {
-            i = i + 1;
-            int a = 0;
-        }
+int i = 1;
+while (i < 101) {
+    if (mod(i,15) == 0) {
+        write("FizzBuzz");
+    } elif (mod(i,3) == 0) {
+        write("Fizz");
+    } elif (mod(i,5) == 0) {
+        write("Buzz");
+    } else {
         write(i);
+    }
+    i = i+1;
+}
         """)
 
 
 print("i is ", store["i"])
-print("a should be a key error", store["a"])
 
 

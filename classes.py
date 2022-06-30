@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from lexer import TokenType
+from lexer import TokenType, Token
 
 from errors import ParserError
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
 class Environment:
@@ -79,6 +79,7 @@ class Expr(ABC):
 # Statements
 ##########################################################################
 
+
 class BlockStatement(Statement):
     def __init__(self, block):
         self.block: List[Statement] = block
@@ -94,20 +95,25 @@ class BlockStatement(Statement):
             env = previous_env
 
     def __repr__(self):
-        return f"BlockStatement({self.block})"
+        return f"BlockStatement(block={self.block})"
 
 
 class IfStatement(Statement):
-    def __init__(self, cond: Expr, if_branch: BlockStatement, else_branch: Optional[BlockStatement]):
+    def __init__(self, cond: Expr, if_branch: BlockStatement, else_branch: Optional[BlockStatement], elif_branches: List[Tuple[Expr, BlockStatement]]):
         self.cond = cond
         self.if_branch = if_branch
         self.else_branch = else_branch
+        self.elif_branches = elif_branches
 
     def execute(self, env: Environment):
         condition = self.cond.evaluate(env)
         if condition:
             self.if_branch.execute(env)
             return
+        for elif_branch_cond, elif_branch_body in self.elif_branches:
+            if elif_branch_cond.evaluate(env):
+                elif_branch_body.execute(env)
+                return
         if not condition and self.else_branch is not None:
             self.else_branch.execute(env)
             return
@@ -129,7 +135,7 @@ class WhileStatement(Statement):
             condition = get_bool(self.cond, env)
 
     def __repr__(self):
-        return f"IfStatement({self.cond}, {self.while_body})"
+        return f"WhileStatement(cond={self.cond}, while_body={self.while_body})"
 
 
 def get_bool(expr: Expr, env):
@@ -147,7 +153,7 @@ class PrintStatement(Statement):
         print(self.expr.evaluate(env))
 
     def __repr__(self):
-        return f"PrintStatement({self.expr})"
+        return f"PrintStatement(expr={self.expr})"
 
 
 class ExpressionStatement(Statement):
@@ -158,7 +164,40 @@ class ExpressionStatement(Statement):
         self.expr.evaluate(env)
 
     def __repr__(self):
-        return f"ExpressionStatement({self.expr})"
+        return f"ExpressionStatement(expr={self.expr})"
+
+
+class FunctionStatement(Statement):
+    def __init__(self, name, parameters: List[Token], body: BlockStatement, global_env: Environment, call_function: Optional[Any] = None):
+        self.name = name
+        self.parameters = parameters
+        self.arity = len(parameters)
+        self.body = body
+        self.global_environment = global_env
+        self.call_function = call_function
+
+    def execute(self, env: Environment):
+        pass
+
+    def call(self, arguments, env: Environment):
+        # TODO: create the global environment
+
+        # functions get their own environment
+        environment = Environment(env)
+        for arg_name, arg_value in zip(self.parameters, arguments):
+            environment.declare_variable(arg_name, arg_value)
+        if self.call_function is not None:
+            self.call_function(env)
+        self.body.execute(environment)
+
+    def __repr__(self):
+        return f"FunctionStatement(name={self.name}, parameters={self.parameters}, body={self.body}, global_env={self.global_environment})"
+
+
+class NativeFunctionStatement(Statement):
+    @abstractmethod
+    def call(self, arguments: List[Any], environment: Environment):
+        pass
 
 
 class VariableStatement(Statement):
@@ -190,6 +229,26 @@ class AssignExpr(Expr):
 
     def __repr__(self):
         return f"AssignExpr(name={self.name}, value={self.value})"
+
+
+class CallExpr(Expr):
+    def __init__(self, callee_name, paranthesis, arguments: List[Expr]):
+        self.callee_name = callee_name
+        self.paranthesis = paranthesis
+        self.arguments = arguments
+
+    def evaluate(self, env: Environment):
+        callee = self.callee_name.evaluate(env)
+        arguments = [arguments.evaluate(env) for arguments in self.arguments]
+        function = callee
+        if len(arguments) != function.arity:
+            raise RuntimeError(f"Expected {len(function.num_of_arguments)} arguments, got {len(arguments)} arguments.")
+        #if not isinstance(type(callee), FunctionStatement) or not isinstance(type(callee)):
+        #    raise RuntimeError(f"Cant call a {type(callee)} statement.")
+        return function.call(arguments=arguments, environment=env)
+
+    def __repr__(self):
+        return f"CallExpr(callee_name={self.callee_name}, paranthesis={self.paranthesis}, arguments={self.arguments})"
 
 
 class LogicExpr(Expr):
