@@ -1,9 +1,29 @@
 = Titanite 0.1.0
 
-== What is missing
 
-- Static typing 5/10
-- No shadowing 1/10
-- Functions 5/10
-- Structs 7/10
+== What is this about?
+
+The attributes, we can describe the language with are:
+
+* simple
+* unambiguous
+* useful
+* easy to learn
+* easy transition to more common languages
+* all the main concepts of programming languages
+* of course: turing complete
+* no object-oriented-programming
+* no null
+
+== Why?
+
+The goal of this project is to create a language which can be an introduction language for programmers without compensating on the might of the language. One important aspect is that this language has as less ambiguity as possible. The goal is that when one developer looks at some unknown code, that there won't be questions like "What happens when I access this?", "What happens if I shadow this variable there", etc. Static typing ensures a lot of error handling before the runtime. Moreover, the error handling has to be specific and useful, so people don't have to search half of the programming time about the error on (you probably guessed it) StackOverflow.
+
+
+== What is currently missing?
+
+* Static typing
+* No shadowing
+* Structs
+* compiler
 
