@@ -1,9 +1,9 @@
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 
 from classes import Environment, Statement, VariableStatement, PrintStatement, ExpressionStatement, BlockStatement, \
-    IfStatement, WhileStatement, FunctionStatement, NativeFunctionStatement, Expr
+    IfStatement, WhileStatement, FunctionStatement, NativeFunctionStatement, Expr, ReturnStatement
 from lexer import TokenType, Token, TokenObject
-from native_functions import ModStatementFunction
+from native_functions import ModStatementFunction, PowStatementFunction
 from parser import Parser, ParserError
 
 
@@ -44,6 +44,7 @@ class StatementParser:
 
     def parse_declaration(self):
         if self.current_token_is_type:
+            var_type = self.current_token_type
             # variable declaration
             self.index += 1
             if self.current_token.type != TokenType.IDENTIFIER:
@@ -61,7 +62,8 @@ class StatementParser:
             if self.current_token_type != TokenType.SEMICOLON:
                 raise ParserError("Expected ';' after variable declaration")
             self.index += 1
-            return VariableStatement(name=variable_name, expr=expr)
+            var_stmt = VariableStatement(var_type=var_type, name=variable_name, expr=expr)
+            return var_stmt
         else:
             return self.parse_statement()
 
@@ -79,7 +81,13 @@ class StatementParser:
         if self.match(TokenType.WRITE):
             return self.write_statement()
         elif self.match(TokenType.FUN):
-            return self.function("function")
+            func_statement = self.function("function")
+            self.environment.declare_variable(func_statement.name, func_statement, TokenType.FUN)
+            return func_statement
+        elif self.match(TokenType.STRUCT):
+            class_statement = self.struct_declaration()
+        elif self.match(TokenType.RETURN):
+            return self.return_statement()
         elif self.match(TokenType.LEFT_CURLY_BRACKET):
             return self.block()
         elif self.match(TokenType.IF):
@@ -107,6 +115,15 @@ class StatementParser:
         self.consume(TokenType.RIGHT_CURLY_BRACKET, "Expect '}' at the end of a block.")
         return BlockStatement(statements)
 
+    def struct_declaration(self):
+        struct_name_token = self.consume(TokenType.IDENTIFIER, "Expected the struct name")
+        self.consume(TokenType.LEFT_BRACKET, "Expected '{' leading the struct body.")
+        methods = []
+        while self.current_token != TokenType.RIGHT_CURLY_BRACKET and not self.file_finished:
+            methods.append(self.function("method"))
+        self.consume(TokenType.LEFT_BRACKET, "Expected '}' closing the struct body.")
+        return StructStatement(stuct_name=struct_name_token.value, methods=methods)
+
     def function(self, kind: str):
         """
         function       → IDENTIFIER "(" parameters? ")" block ;
@@ -115,14 +132,18 @@ class StatementParser:
         """
         name_token: Token = self.consume(TokenType.IDENTIFIER, f"Expected {kind} name.")
         self.consume(TokenType.LEFT_BRACKET, f"Expected '(' after {kind} name.")
-        parameters: List[Token] = []
+        parameters: List[Tuple[TokenType, Token]] = []
         if self.current_token_type != TokenType.RIGHT_BRACKET:
-            parameters.append(self.consume(TokenType.IDENTIFIER, "Expected an identifier as function argument."))
+            var_type = self.consume_type()
+            var_name = self.consume(TokenType.IDENTIFIER, "Expected an identifier as function argument.")
+            parameters.append((var_type, var_name))
             while self.current_token_type == TokenType.COMMA:
                 self.index += 1
                 if len(parameters) > 255:
                     raise ParserError("Cannot have more than 255 function arguments.")
-                parameters.append(self.consume(TokenType.IDENTIFIER, "Expected an identifier as function argument."))
+                var_type = self.consume_type()
+                var_name = self.consume(TokenType.IDENTIFIER, "Expected an identifier as function argument.")
+                parameters.append((var_type, var_name))
         self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after function arguments.")
         self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected '{' before " + kind + " body.")
         function_body = self.block()
@@ -177,14 +198,27 @@ class StatementParser:
             return current_token
         raise ParserError(error)
 
+    def consume_type(self) -> TokenType:
+        if (token := self.matches([TokenType.INT, TokenType.STRING, TokenType.DOUBLE, TokenType.BOOLEAN])) is not None:
+            return token
+        raise ParserError(f"Expected type. Got {self.current_token_type}")
+
     def match(self, token_type: TokenType):
         if self.current_token_type == token_type:
             self.index += 1
             return True
         return False
 
+    def matches(self, token_types: List[TokenType]) -> Optional[TokenType]:
+        for token_type in token_types:
+            if token_type == self.current_token_type:
+                self.index += 1
+                return token_type
+        return None
+
     def add_native_functions(self):
-        self.environment.declare_variable("mod", ModStatementFunction())
+        self.environment.declare_variable("mod", ModStatementFunction(), TokenType.FUN)
+        self.environment.declare_variable("pow", PowStatementFunction(), TokenType.FUN)
 
     def write_statement(self):
         self.consume(TokenType.LEFT_BRACKET, "Expect '(' after write statement.")
@@ -194,3 +228,10 @@ class StatementParser:
             raise ParserError("Expected an ';' after a write statement")
         self.index += 1
         return PrintStatement(expr=expr)
+
+    def return_statement(self):
+        expr = None
+        if self.current_token_type != TokenType.SEMICOLON:
+            expr = self.expression()
+        self.consume(TokenType.SEMICOLON, "Expected ';', at the end of return statement.")
+        return ReturnStatement(expr)

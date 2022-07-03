@@ -1,34 +1,128 @@
 from abc import ABC, abstractmethod
+from enum import Enum
+
 from lexer import TokenType, Token
 
-from errors import ParserError
+from errors import ParserError, ReturnError
 
 from typing import Dict, Any, Optional, List, Tuple
 
 
+class StaticType(Enum):
+    INT = "INT"
+    STRING = "STRING"
+    DOUBLE = "DOUBLE"
+    BOOLEAN = "BOOLEAN"
+    LIST = "LIST"
+    FUNCTION = "FUNCTION"
+    NATIVE_FUNCTION = "NATIVE_FUNCTION"
+    ANY = "ANY"
+    STRUCT = "STRUCT"
+
+
+def convert_token_type_to_static_type(token_type: TokenType):
+    if token_type == TokenType.INT:
+        return StaticType.INT
+    elif token_type == TokenType.DOUBLE:
+        return StaticType.DOUBLE
+    elif token_type == TokenType.STRING:
+        return StaticType.STRING
+    elif token_type == TokenType.BOOLEAN:
+        return StaticType.BOOLEAN
+    elif token_type == TokenType.LIST:
+        return StaticType.LIST
+    elif token_type == TokenType.FUN:
+        return StaticType.FUNCTION
+    elif token_type == TokenType.STRUCT:
+        return StaticType.STRUCT
+
+    else:
+        raise RuntimeError(f"Expected a valid token type to convert to static type. Got {token_type}")
+
+
+def convert_value_to_static_type(value: Any):
+    if isinstance(value, int):
+        return StaticType.INT
+    elif isinstance(value, float):
+        return StaticType.DOUBLE
+    elif isinstance(value, str):
+        return StaticType.STRING
+    elif isinstance(value, bool):
+        return StaticType.BOOLEAN
+    elif isinstance(value, list):
+        return StaticType.LIST
+    elif isinstance(value, FunctionStatement):
+        return StaticType.FUNCTION
+    else:
+        raise RuntimeError(f"Could not infer the type of {value}")
+
+
 class Environment:
     def __init__(self, enclosing: Optional[Any] = None):
-        self.environment: Dict[str, Any] = {}
+        """
+        Example env:
+        {
+            "a": (
+                type: StaticType.INT
+                value: 3
+            ),
+            "string_example": (
+                type: StaticType.STRING
+                value: "Hello World!"
+            )
+        }
+        :param enclosing:
+        """
+        self.environment: Dict[str, Tuple[StaticType, Any]] = {}
         if enclosing is None:
             self.enclosing = None
         else:
             self.enclosing = enclosing
 
-    def declare_variable(self, name, value):
+    def declare_variable(self, name, value: Any, var_type: Optional[TokenType], _static_type: Optional[StaticType] = None):
         """
         Declares a new (probably undefined) variable
+
         :param name:
         :param value:
+        :param var_type:
+        :param _static_type:
         :return:
         """
-        if name not in self.environment:
-            self.environment[name] = value
+        # we use this try catch statement to know if the variable was already declared.
+        variable_already_use = True
+        try:
+            var_type = self.get_variable_value(name)
+        except RuntimeError:
+            variable_already_use = False
+        if variable_already_use:
+            raise RuntimeError(f"Variable {name} was already declared. Cannot redeclare the variable.")
+
+        expected_static_type = StaticType.ANY
+        if _static_type is not None:
+            expected_static_type = _static_type
+        elif var_type is not None:
+            expected_static_type = convert_token_type_to_static_type(var_type)
+
+        actual_value_type = StaticType.ANY
+        if hasattr(value, "static_type"):
+            actual_value_type = StaticType.FUNCTION
         else:
-            self.environment[name] = value
+            actual_value_type = convert_value_to_static_type(value)
+        value_tuple = (expected_static_type, value)
+
+        if expected_static_type != actual_value_type:
+            print("raise error", name, value, var_type, _static_type)
+            raise RuntimeError(f"Cannot assign {actual_value_type} ({value}) to type {expected_static_type} (name: {name})")
+        if name not in self.environment:
+            self.environment[name] = value_tuple
+        else:
+            raise ParserError(f"Cannot redefine already defined variable '{name}'")
 
     def assign_variable(self, name, value):
         """
         Assigns a variable, the variable has to be defined before.
+
         :param name: the name of the variable
         :param value: the value of the variable
         :return:
@@ -39,11 +133,23 @@ class Environment:
         elif name not in self.environment and self.enclosing is not None:
             self.enclosing.assign_variable(name, value)
         else:
-            self.environment[name] = value
+            # check type
+            env_var_type = self.environment[name][0]
+            value_type = convert_value_to_static_type(value)
+            if env_var_type != value_type:
+                raise RuntimeError(f"Incompatible type of {name} (of type {env_var_type}) and {value} (of type {value_type})")
+            self.environment[name] = (env_var_type, value)
 
     def get_variable_value(self, name):
+        """
+        Gets a variable with the specified name
+
+        :param name:
+        :return: returns the Expression object
+        :raises: RuntimeError if there is no variable with this name
+        """
         if name in self.environment:
-            return self.environment[name]
+            return self.environment[name][1]
         if self.enclosing is not None:
             return self.enclosing.get_variable_value(name)
         raise RuntimeError(f"Undefined variable {name}.")
@@ -57,7 +163,7 @@ class Environment:
         evaluated_environment = self.environment
         for key, value in evaluated_environment.items():
             if issubclass(type(value), Expr):
-                evaluated_environment[key] = value.evaluate(self.environment)
+                evaluated_environment[key] = value[1].evaluate(self.environment)
         return evaluated_environment
 
     def __repr__(self):
@@ -74,6 +180,7 @@ class Expr(ABC):
     @abstractmethod
     def evaluate(self, env: Environment):
         pass
+
 
 ##########################################################################
 # Statements
@@ -99,7 +206,8 @@ class BlockStatement(Statement):
 
 
 class IfStatement(Statement):
-    def __init__(self, cond: Expr, if_branch: BlockStatement, else_branch: Optional[BlockStatement], elif_branches: List[Tuple[Expr, BlockStatement]]):
+    def __init__(self, cond: Expr, if_branch: BlockStatement, else_branch: Optional[BlockStatement],
+                 elif_branches: List[Tuple[Expr, BlockStatement]]):
         self.cond = cond
         self.if_branch = if_branch
         self.else_branch = else_branch
@@ -168,7 +276,7 @@ class ExpressionStatement(Statement):
 
 
 class FunctionStatement(Statement):
-    def __init__(self, name, parameters: List[Token], body: BlockStatement, global_env: Environment):
+    def __init__(self, name, parameters: List[Tuple[TokenType, Token]], body: BlockStatement, global_env: Environment):
         self.name = name
         self.parameters = parameters
         self.arity = len(parameters)
@@ -180,15 +288,69 @@ class FunctionStatement(Statement):
 
     def call(self, arguments, env: Environment):
         # TODO: create the global environment
-
         # functions get their own environment
         environment = Environment(env)
-        for arg_name, arg_value in zip(self.parameters, arguments):
-            environment.declare_variable(arg_name, arg_value)
-        self.body.execute(environment)
+        for (arg_type, arg_token_name), arg_value in zip(self.parameters, arguments):
+            check_correct_type(arg_type, arg_value)
+            environment.declare_variable(arg_token_name.value, arg_value, arg_type)
+        try:
+            self.body.execute(environment)
+        except ReturnError as r:
+            return r.return_value
+        return None
+
+    @staticmethod
+    @property
+    def static_type():
+        return StaticType.FUNCTION
 
     def __repr__(self):
         return f"FunctionStatement(name={self.name}, parameters={self.parameters}, body={self.body}, global_env={self.global_environment})"
+
+
+class StructStatement(Statement):
+    def __init__(self, name, methods):
+        self.name = name
+        self.methods = methods
+
+    def execute(self, env: Environment):
+        env.declare_variable(self.name, None, None, StaticType.STRUCT)
+        _class = ClassExpr(name)
+
+
+
+def check_correct_type(token_type: TokenType, value: Any):
+    """
+    Checks if the value has the specified type. The value should be an evaluated expression
+    :param token_type:
+    :param value:
+    :return:
+    """
+    if token_type == TokenType.INT:
+        if not isinstance(value, int):
+            raise RuntimeError(f"Expected int. Got {type(value)}")
+    elif token_type == TokenType.STRING:
+        if not isinstance(value, str):
+            raise RuntimeError(f"Expected str. Got {type(value)}")
+    elif token_type == TokenType.DOUBLE:
+        if not isinstance(value, float):
+            raise RuntimeError(f"Expected float. Got {type(value)}")
+    elif token_type == TokenType.BOOLEAN:
+        if not isinstance(value, bool):
+            raise RuntimeError(f"Expected bool. Got {type(value)}")
+    else:
+        raise RuntimeError(f"Expected a type for the token. Got {token_type}")
+
+
+class ReturnStatement(Statement):
+    def __init__(self, expr: Expr):
+        self.expr = expr
+
+    def execute(self, env):
+        value = None
+        if self.expr is not None:
+            value = self.expr.evaluate(env)
+        raise ReturnError(value)
 
 
 class NativeFunctionStatement(Statement):
@@ -196,19 +358,26 @@ class NativeFunctionStatement(Statement):
     def call(self, arguments: List[Any], environment: Environment):
         pass
 
+    @staticmethod
+    @property
+    def static_type():
+        return StaticType.NATIVE_FUNCTION
+
 
 class VariableStatement(Statement):
-    def __init__(self, name: str, expr: Expr):
+    def __init__(self, var_type: TokenType, name: str, expr: Expr):
+        self.var_type = var_type
         self.name = name
         self.expr = expr
 
     def execute(self, env):
         value = self.expr.evaluate(env)
-        env.declare_variable(self.name, value)
-        #print(f"Following value was assigned to {self.name}: {value}")
+        env.declare_variable(self.name, value, self.var_type)
+        # print(f"Following value was assigned to {self.name}: {value}")
 
     def __repr__(self):
-        return f"VariableStatement(name={self.name}, expr={self.expr})"
+        return f"VariableStatement(var_type={self.var_type}, name={self.name}, expr={self.expr})"
+
 
 ##########################################################################
 # Expressions
@@ -239,10 +408,10 @@ class CallExpr(Expr):
         arguments = [arguments.evaluate(env) for arguments in self.arguments]
         function = callee
         if len(arguments) != function.arity:
-            raise RuntimeError(f"Expected {len(function.num_of_arguments)} arguments, got {len(arguments)} arguments.")
-        #if not isinstance(type(callee), FunctionStatement) or not isinstance(type(callee)):
+            raise RuntimeError(f"Expected {function.arity} arguments, got {len(arguments)} arguments.")
+        # if not isinstance(type(callee), FunctionStatement) or not isinstance(type(callee)):
         #    raise RuntimeError(f"Cant call a {type(callee)} statement.")
-        return function.call(arguments=arguments, environment=env)
+        return function.call(arguments=arguments, env=env)
 
     def __repr__(self):
         return f"CallExpr(callee_name={self.callee_name}, paranthesis={self.paranthesis}, arguments={self.arguments})"

@@ -27,3 +27,11 @@ class LexerError(Error):
             self.location_str = f"Following error occurred at line: {position.start_line}, col: {position.start_col - position.end_col}."
         super(LexerError, self).__init__(self.location_str + message)
 
+
+class ReturnError(Error):
+    def __init__(self, value):
+        self.value = value
+
+    @property
+    def return_value(self):
+        return self.value

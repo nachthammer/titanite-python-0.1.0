@@ -35,22 +35,18 @@ def execute(string: str):
 
 #print(evaluate_string("true && false"))
 store, evaluated_store = execute("""
-int i = 1;
-while (i < 101) {
-    if (mod(i,15) == 0) {
-        write("FizzBuzz");
-    } elif (mod(i,3) == 0) {
-        write("Fizz");
-    } elif (mod(i,5) == 0) {
-        write("Buzz");
-    } else {
-        write(i);
-    }
-    i = i+1;
+str a = "global";
+{
+  fun showA() {
+    write( a);
+  }
+
+  showA();
+  str a = "block";
+  showA();
 }
-        """)
+""")
 
-
-print("i is ", store["i"])
+print(store, evaluated_store)
 
 

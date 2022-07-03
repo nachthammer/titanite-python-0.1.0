@@ -20,10 +20,41 @@ The attributes, we can describe the language with are:
 The goal of this project is to create a language which can be an introduction language for programmers without compensating on the might of the language. One important aspect is that this language has as less ambiguity as possible. The goal is that when one developer looks at some unknown code, that there won't be questions like "What happens when I access this?", "What happens if I shadow this variable there", etc. Static typing ensures a lot of error handling before the runtime. Moreover, the error handling has to be specific and useful, so people don't have to search half of the programming time about the error on (you probably guessed it) StackOverflow.
 
 
-== What is currently missing?
+== What is currently missing (interpreter)?
 
-* Static typing
 * No shadowing
 * Structs
-* compiler
+* complex data structures
+* read from cli
+
+maybe more?
+
+* file descriptors
+* sockets
+
+== What is done (interpreter)?
+
+* static typing
+* primitive data types
+* declare and call functions
+* while-loop
+* if, elif, else statement
+* variable assignment, variable declaration
+* print to stdout (write(...))
+
+== How to contribute?
+
+1. Make more native functions!
+
+    Put them into the native_functions.py class and make sure they have the right functions. Take the previous native functions as an example.
+
+2. Submit bugs (and even fix them?)!
+
+    Submit bugs with the issue tags and maybe fix them by submitting a pull request.
+
+
+
+== Contributors
+
+* Alexander Berkov
 

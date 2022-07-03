@@ -6,6 +6,9 @@ from typing import Pattern, AnyStr, List, Optional, Tuple, Union
 class TokenType(Enum):
     IDENTIFIER = "IDENTIFIER"
     FUN = "FUN"
+    RETURN = "RETURN"
+    STRUCT = "STRUCT"
+    CLASS = "CLASS"
     # types
     INT = "INT"
     DOUBLE = "DOUBLE"
@@ -264,6 +267,12 @@ class Lexer:
                 token = Token(TokenType.WRITE)
             elif full_word == "fun":
                 token = Token(TokenType.FUN)
+            elif full_word == "struct":
+                token = Token(TokenType.STRUCT)
+            elif full_word == "class":
+                token = Token(TokenType.CLASS)
+            elif full_word == "return":
+                token = Token(TokenType.RETURN)
             elif re.match(LITERAL_REGEX, full_word):
                 if full_word == "true":
                     token = Token(TokenType.TRUE)
