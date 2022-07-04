@@ -42,6 +42,9 @@ class StatementParser:
     def get_evaluated_store(self):
         return self.environment.evaluated_store
 
+    def get_clean_store(self):
+        return self.environment.clean_store
+
     def parse_declaration(self):
         if self.current_token_is_type:
             var_type = self.current_token_type

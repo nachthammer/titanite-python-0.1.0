@@ -7,6 +7,7 @@ from errors import ParserError, ReturnError
 
 from typing import Dict, Any, Optional, List, Tuple
 
+native_functions = ["mod", "pow"]
 
 class StaticType(Enum):
     INT = "INT"
@@ -18,6 +19,9 @@ class StaticType(Enum):
     NATIVE_FUNCTION = "NATIVE_FUNCTION"
     ANY = "ANY"
     STRUCT = "STRUCT"
+
+    def __repr__(self):
+        return f"{self.value}"
 
 
 def convert_token_type_to_static_type(token_type: TokenType):
@@ -165,6 +169,19 @@ class Environment:
             if issubclass(type(value), Expr):
                 evaluated_environment[key] = value[1].evaluate(self.environment)
         return evaluated_environment
+
+    @property
+    def clean_store(self) -> Dict[str, Any]:
+        evaluated_environment = self.environment
+        for key, value in evaluated_environment.items():
+            if issubclass(type(value), Expr):
+                evaluated_environment[key] = value[1].evaluate(self.environment)
+
+        clean_env = {}
+        for key, value in evaluated_environment.items():
+            if key not in native_functions:
+                clean_env[key] = evaluated_environment[key]
+        return clean_env
 
     def __repr__(self):
         return f"Environment(environment={self.environment}, enclosing={self.enclosing})"
@@ -316,7 +333,6 @@ class StructStatement(Statement):
     def execute(self, env: Environment):
         env.declare_variable(self.name, None, None, StaticType.STRUCT)
         _class = ClassExpr(name)
-
 
 
 def check_correct_type(token_type: TokenType, value: Any):

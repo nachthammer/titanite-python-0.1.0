@@ -1,5 +1,4 @@
-import numpy as np
-from sys import getsizeof
+import sys
 
 from evaluator import Evaluator
 from lexer import Lexer
@@ -30,23 +29,24 @@ def execute(string: str):
     statement_parser = StatementParser(tokens)
     statement_parser.parse()
     statement_parser.interpret()
-    return statement_parser.get_store(), statement_parser.get_evaluated_store()
+    return statement_parser.get_store(), statement_parser.get_clean_store()
 
 
-#print(evaluate_string("true && false"))
-store, evaluated_store = execute("""
-str a = "global";
-{
-  fun showA() {
-    write( a);
-  }
+if __name__ == "__main__":
+    args = sys.argv
+    file_name = "program.ti"
+    try:
+        file_name = args[1]
+    except IndexError:
+        print(f"You need to give a file name as the first argument")
+        exit(-1)
 
-  showA();
-  str a = "block";
-  showA();
-}
-""")
+    with open(file_name) as f:
+        program_string = f.read()
 
-print(store, evaluated_store)
+    store, ev_store = execute(program_string)
+    print(ev_store)
+
+
 
 
