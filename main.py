@@ -39,7 +39,6 @@ if __name__ == "__main__":
         file_name = args[1]
     except IndexError:
         print(f"You need to give a file name as the first argument")
-        exit(-1)
 
     with open(file_name) as f:
         program_string = f.read()

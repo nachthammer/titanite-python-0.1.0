@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List, Tuple
 
 native_functions = ["mod", "pow"]
 
+
 class StaticType(Enum):
     INT = "INT"
     STRING = "STRING"
@@ -45,14 +46,15 @@ def convert_token_type_to_static_type(token_type: TokenType):
 
 
 def convert_value_to_static_type(value: Any):
-    if isinstance(value, int):
-        return StaticType.INT
+    print("converting", value)
+    if isinstance(value, bool):
+        return StaticType.BOOLEAN
     elif isinstance(value, float):
         return StaticType.DOUBLE
     elif isinstance(value, str):
         return StaticType.STRING
-    elif isinstance(value, bool):
-        return StaticType.BOOLEAN
+    elif isinstance(value, int):
+        return StaticType.INT
     elif isinstance(value, list):
         return StaticType.LIST
     elif isinstance(value, FunctionStatement):
@@ -113,6 +115,7 @@ class Environment:
             actual_value_type = StaticType.FUNCTION
         else:
             actual_value_type = convert_value_to_static_type(value)
+        print("actual value type", actual_value_type, name, value)
         value_tuple = (expected_static_type, value)
 
         if expected_static_type != actual_value_type:

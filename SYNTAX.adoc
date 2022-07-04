@@ -1,0 +1,119 @@
+= SYNTAX
+
+== Assigment/Declaration
+
+[source, java]
+----
+int a = 5;
+str b = "a";
+int a = 5; // throws error: "Cannot redeclare a variable"
+double c = 1.2;
+double d = 1.; // throws error: "Expected a number after the point"
+double e = 1; // throws error: "Cannot assign an int (1) to a variable e of type double"
+int f = "f"; // throws error: "Cannot assign an string (f) to the variable f of type int"
+bool a = true;
+bool b = false;
+----
+
+== Printing
+
+[source, java]
+----
+write("Hello World!"); // prints "Hello World!"
+----
+
+== Operators that result into boolean
+
+[source, java]
+----
+bool a = (true && false) || true; // true
+boolb = 5 < 4; // false
+bool c = 5 == 5; // true
+bool d = 1.2 == 1; // throws error: Cannot compare int and double
+----
+
+== Native functions
+
+[source, java]
+----
+int result = mod(5, 2); // 1
+result = pow(2, 3) // 8
+----
+
+== If Statements
+
+[source, java]
+----
+int a = 0;
+if (true) {
+    a = 1;
+}
+write(a); // print 1
+----
+
+[source, java]
+----
+int a = 0;
+if (false) {
+    a = 1;
+} else {
+    a = 2;
+}
+write(a); // print 2
+----
+
+[source, java]
+----
+int a = 3;
+if (a) { // throws error: "Expected a boolean as condition result"
+    a = 5;
+}
+write(a); // doesnt print anything, because program crashes before
+----
+
+[source, java]
+----
+int a = 0;
+if (a == 2) {
+    a = 1;
+} elif (a == 3) {
+    a = 2;
+} else {
+    a = 3;
+}
+write(a); // prints 2;
+----
+
+== Loops
+
+[source, java]
+----
+int i = 0;
+int a = 0;
+while (i < 10) {
+    i = i + 1;
+    a = i + a;
+}
+write(a); // prints 55;
+----
+
+[source, java]
+----
+int i = 0;
+int a = 0;
+while (i < 10) {
+    write(i); // prints 0 forever, because there is no increment
+}
+write(a); // unreachable code
+----
+
+[source, java]
+----
+int sum = 0;
+for i in nums(0,10) {
+    sum = sum + i;
+}
+write(sum); // prints 45
+----
+
+
