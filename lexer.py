@@ -40,6 +40,8 @@ class TokenType(Enum):
     RIGHT_BRACKET = "RIGHT_BRACKET"
     LEFT_CURLY_BRACKET = "LEFT_CURLY_BRACKET"
     RIGHT_CURLY_BRACKET = "RIGHT_CURLY_BRACKET"
+    LEFT_CORNERED_BRACKET = "LEFT_CORNERED_BRACKET"
+    RIGHT_CORNERED_BRACKET = "RIGHT_CORNERED_BRACKET"
     SEMICOLON = "SEMICOLON"
     COMMA = "COMMA"
     LINE_BREAK = "LINE_BREAK"
@@ -222,6 +224,10 @@ class Lexer:
             token = Token(TokenType.LEFT_CURLY_BRACKET)
         elif current_char == "}":
             token = Token(TokenType.RIGHT_CURLY_BRACKET)
+        elif current_char == "[":
+            token = Token(TokenType.LEFT_CORNERED_BRACKET)
+        elif current_char == "]":
+            token = Token(TokenType.RIGHT_CORNERED_BRACKET)
         elif current_char == ";":
             token = Token(TokenType.SEMICOLON)
         elif current_char == ",":

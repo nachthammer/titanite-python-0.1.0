@@ -7,7 +7,7 @@ from errors import ParserError, ReturnError
 
 from typing import Dict, Any, Optional, List, Tuple
 
-native_functions = ["mod", "pow"]
+native_functions = ["mod", "pow", "nums"]
 
 
 class StaticType(Enum):
@@ -85,7 +85,8 @@ class Environment:
         else:
             self.enclosing = enclosing
 
-    def declare_variable(self, name, value: Any, var_type: Optional[TokenType], _static_type: Optional[StaticType] = None):
+    def declare_variable(self, name, value: Any, var_type: Optional[TokenType],
+                         _static_type: Optional[StaticType] = None):
         """
         Declares a new (probably undefined) variable
 
@@ -120,7 +121,8 @@ class Environment:
 
         if expected_static_type != actual_value_type:
             print("raise error", name, value, var_type, _static_type)
-            raise RuntimeError(f"Cannot assign {actual_value_type} ({value}) to type {expected_static_type} (name: {name})")
+            raise RuntimeError(
+                f"Cannot assign {actual_value_type} ({value}) to type {expected_static_type} (name: {name})")
         if name not in self.environment:
             self.environment[name] = value_tuple
         else:
@@ -144,7 +146,8 @@ class Environment:
             env_var_type = self.environment[name][0]
             value_type = convert_value_to_static_type(value)
             if env_var_type != value_type:
-                raise RuntimeError(f"Incompatible type of {name} (of type {env_var_type}) and {value} (of type {value_type})")
+                raise RuntimeError(
+                    f"Incompatible type of {name} (of type {env_var_type}) and {value} (of type {value_type})")
             self.environment[name] = (env_var_type, value)
 
     def get_variable_value(self, name):
@@ -401,6 +404,37 @@ class VariableStatement(Statement):
 ##########################################################################
 # Expressions
 ##########################################################################
+
+class ArrayExpr(Expr):
+    def __init__(self, expressions: List[Expr]):
+        self.expressions = expressions
+
+    def evaluate(self, env: Environment):
+        return [expr.evaluate(env) for expr in self.expressions]
+
+    def __repr__(self):
+        return f"ArrayExpr(expressions={self.expressions})"
+
+
+class ArrayIndexExpr(Expr):
+    def __init__(self, identifier, index_expr: Expr):
+        self.identifier = identifier
+        self.index_expr = index_expr
+
+    def evaluate(self, env: Environment):
+        index = self.index_expr.evaluate(env)
+        if not isinstance(index, int):
+            raise ParserError(f"Expected an integer got {type(index)} ({index})")
+        array = env.get_variable_value(self.identifier)
+        if not isinstance(array, list):
+            raise ParserError(f"Expected a list got {type(array)} ({array})")
+        try:
+            return array[index]
+        except IndexError:
+            raise RuntimeError(f"Index out of bounds for {self.identifier}. Got {index} but max length is {len(array)}")
+
+    def __repr__(self):
+        return f"ArrayIndexExpr(identifier={self.identifier}, index_expr={self.index_expr})"
 
 
 class AssignExpr(Expr):

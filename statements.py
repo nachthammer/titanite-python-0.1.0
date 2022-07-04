@@ -3,7 +3,7 @@ from typing import List, Tuple, Dict, Any, Optional
 from classes import Environment, Statement, VariableStatement, PrintStatement, ExpressionStatement, BlockStatement, \
     IfStatement, WhileStatement, FunctionStatement, NativeFunctionStatement, Expr, ReturnStatement
 from lexer import TokenType, Token, TokenObject
-from native_functions import ModStatementFunction, PowStatementFunction
+from native_functions import ModStatementFunction, PowStatementFunction, NumsStatementFunction
 from parser import Parser, ParserError
 
 
@@ -78,7 +78,8 @@ class StatementParser:
         if self.current_token.value is not None:
             return False
         current_type = self.current_token.type
-        return current_type == TokenType.STRING or current_type == TokenType.INT or current_type == TokenType.DOUBLE or current_type == TokenType.BOOLEAN
+        return current_type == TokenType.STRING or current_type == TokenType.INT or current_type == TokenType.DOUBLE or \
+               current_type == TokenType.BOOLEAN or current_type == TokenType.LIST
 
     def parse_statement(self):
         if self.match(TokenType.WRITE):
@@ -150,7 +151,8 @@ class StatementParser:
         self.consume(TokenType.RIGHT_BRACKET, "Expected ')' after function arguments.")
         self.consume(TokenType.LEFT_CURLY_BRACKET, "Expected '{' before " + kind + " body.")
         function_body = self.block()
-        return FunctionStatement(name=name_token.value, parameters=parameters, body=function_body, global_env=self.environment)
+        return FunctionStatement(name=name_token.value, parameters=parameters, body=function_body,
+                                 global_env=self.environment)
 
     def if_statement(self):
         self.consume(TokenType.LEFT_BRACKET, "Expected '(' after an if statement")
@@ -222,6 +224,7 @@ class StatementParser:
     def add_native_functions(self):
         self.environment.declare_variable("mod", ModStatementFunction(), TokenType.FUN)
         self.environment.declare_variable("pow", PowStatementFunction(), TokenType.FUN)
+        self.environment.declare_variable("nums", NumsStatementFunction(), TokenType.FUN)
 
     def write_statement(self):
         self.consume(TokenType.LEFT_BRACKET, "Expect '(' after write statement.")

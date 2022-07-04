@@ -38,3 +38,15 @@ def _check_types(function_name: str, arity: int, arguments: List[Any], types: Li
             raise RuntimeError(f"{i}. argument in mod function is supposed to be an {var_type} but was type {type(arg)}")
         yield arg
 
+
+class NumsStatementFunction(NativeFunctionStatement):
+    def __init__(self):
+        self.name = "nums"
+        self.arity = 2
+
+    def execute(self, env):
+        pass
+
+    def call(self, arguments, env):
+        first, second = _check_types("nums", arity=self.arity, arguments=arguments, types=[int, int])
+        return [i for i in range(first, second)]
